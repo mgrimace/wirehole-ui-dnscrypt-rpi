@@ -1,0 +1,10 @@
+wireguard/
+unbound/*
+etc-pihole/
+etc-dnsmasq.d/
+!unbound/unbound.conf
+.DS_Store
+.env
+dnscrypt-proxy/config/*
+!dnscrypt-proxy/config/dnscrypt-proxy.toml
+dnscrypt-proxy/log/*
