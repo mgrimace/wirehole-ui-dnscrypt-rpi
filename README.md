@@ -1,6 +1,6 @@
 ## What is this?
 
-**WireHole (UI-DNScrypt-RPI)** is an opinionated fork of [WireHole](https://github.com/IAmStoxe/WireHole) and [WireHole-UI](https://github.com/10h30/wirehole-ui), optimized for the **Raspberry Pi Zero 2W**. It replaces **Unbound** with [DNSCrypt-Proxy](https://github.com/DNSCrypt/dnscrypt-proxy) to provide **encrypted DNS**, **Canadian-based resolvers**, and **anonymized DNS requests** routed through logless **privacy-focused DNScrypt Canadian relays**.
+**WireHole (UI-DNScrypt-RPI)** is an opinionated fork of [WireHole](https://github.com/IAmStoxe/WireHole) and [WireHole-UI](https://github.com/10h30/wirehole-ui), optimized for speed, reliability, privacy, and anonymization when deployed on a **Raspberry Pi Zero 2W**. It replaces **Unbound** with [DNSCrypt-Proxy](https://github.com/DNSCrypt/dnscrypt-proxy) to provide **encrypted DNS**, using logless **Canadian-based resolvers**, and **anonymized DNS requests** routed through **privacy-focused DNScrypt Canadian relays**.
 
 
 This all-in-one Docker Compose project lets you easily deploy a self-managed, full or split-tunnel **WireGuard VPN** stack, **tuned for low-power Raspberry Pi devices**, with:
@@ -38,6 +38,8 @@ This fork builds on the work of:
 
 - **[@SwaroopGiri](https://github.com/SwaroopGiri)** – Inspiration for ODoH + Pi-hole integration + DNSCrypt .toml configuration
   🔗 [Pihole-with-Anonymized-ODOH](https://github.com/SwaroopGiri/Pihole-with-Anonymized-ODOH/)
+
+- **[Wirehole-UI-ODoH])(https://github.com/mgrimace/wirehole-ui-odoh)** - My own previous fork of WireHole which focused on ODoH implemention
 
 ---
 
