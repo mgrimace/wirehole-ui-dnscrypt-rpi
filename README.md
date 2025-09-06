@@ -39,7 +39,7 @@ This fork builds on the work of:
 - **[@SwaroopGiri](https://github.com/SwaroopGiri)** – Inspiration for ODoH + Pi-hole integration + DNSCrypt .toml configuration
   🔗 [Pihole-with-Anonymized-ODOH](https://github.com/SwaroopGiri/Pihole-with-Anonymized-ODOH/)
 
-- **[Wirehole-UI-ODoH])(https://github.com/mgrimace/wirehole-ui-odoh)** - My own previous fork of WireHole which focused on ODoH implemention
+- **[Wirehole-UI-ODoH](https://github.com/mgrimace/wirehole-ui-odoh)** - My own previous fork of WireHole which focused on ODoH implemention
 
 ---
 
