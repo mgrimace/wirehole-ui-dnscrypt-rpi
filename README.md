@@ -258,6 +258,8 @@ Once registered you can define the dockerfile to use with `-f Dockerfile.aarch64
 
 If you plan to use Wireguard both remotely and locally, say on your mobile phone, edit the config use on-demand activation with an exception for your home network.
 
+> Is this a secondary Pi-Hole (e.g., for your secondary DNS) using a Raspberry Pi that's connected via wifi? You may want to use `sudo nmcli con mod preconfigured wifi.powersave disable` to keep wifi alive, especially if you're experiencing connectivity problems
+
 ---
 
 ###### Shout out to LinuxServer.io for their documentation and maintenance of the incredible Wireguard image.
