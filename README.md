@@ -66,29 +66,92 @@ docker compose up -d
 ```
 ### Full Setup
 
-1. Install docker according to the official documentation, for example on a Raspberry Pi (debian-based): https://docs.docker.com/engine/install/debian/
+## Raspberry Pi Setup
 
-2. **Clone this repository**  
+1. **Install Docker** 
+    - Install docker according to the official documentation, for example on a Raspberry Pi (debian-based): https://docs.docker.com/engine/install/debian/
+
+    >Note: add yourself as a docker sudo user: `sudo usermod -aG docker $USER`
+
+2. **Hardcode DNS for the Raspberry Pi**
+    - If the Pi is using DHCP and receiving the Pihole's IP (itself) for its DNS, in some circumstances (e.g., Pihole down) it can create a non-working loop.      
+
+    ```bash
+    #identify the name(s) of your connections
+    nmcli device status 
+    #mine is called 'Wired'
+    sudo nmcli con mod "Wired" ipv4.dns "1.1.1.1" ipv4.ignore-auto-dns yes
+    sudo systemctl restart NetworkManager
+    ```
+
+3. **Setup unattended-upgrades for the Raspberry Pi**
+    - This is useful if you plan to plug in the Pi and mostly ignore it
+
+    ```bash
+    sudo apt install unattended-upgrades -y
+    # configure it using:
+    sudo nano /etc/apt/apt.conf.d/50unattended-upgrades
+    # enable your preferred options. For example, set Unattended-Upgrade::Automatic-Reboot "true"; and the subsequent options to reboot at a specific time, e.g., "02:00". Save then exit with ctrl+x, y
+    sudo systemctl start unattended-upgrades
+    sudo systemctl enable unattended-upgrades
+    ```
+
+## Wirehole Setup
+
+1. **Clone this repository**  
    ```bash
    git clone https://github.com/mgrimace/wirehole-ui-dnscrypt-rpi.git
    cd wirehole-ui-dnscrypt-rpi
     ```
+
+    >Optional: I use `/opt/wirehole`
+    ```bash
+    sudo mkdir -p /opt/wirehole
+    sudo mv ~/wirehole-ui-dnscrypt-rpi /opt/wirehole/
+    # optional, give yourself permissions for /opt/wirehole/
+    sudo groupadd wirehole
+    sudo usermod -aG wirehole $USER
+    sudo chown -R root:wirehole /opt/wirehole
+    sudo chmod -R g+rw /opt/wirehole
+    ```
+
 3. **Set Pi-hole web interface password**  
     - Set a password directly in the `docker-compose.yaml`, or create a `.env` file next to `docker-compose.yml`:
+
      ```ini
      PIHOLE_WEB_PASSWORD=your-secure-password
      ```
 4. **Review `docker-compose.yml` settings**  
     - **dnscrypt-proxy**  
       - Handles encrypted and anonymized DNS.
-      - Uses a custom `dnscrypt-proxy.toml` from `./dnscrypt-proxy`.
+      - Uses a customized `dnscrypt-proxy.toml` from `./dnscrypt-proxy`.
       - Runs at `10.2.0.200:5350` on the `wirehole` network.
+
+      >Customize: optionally change [resolvers](https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/public-resolvers.md) and [relays](https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/relays.md) from Canada to your preferred country. Resolvers are changed in `server_names = []`, and relays are changed in `routes = []` of the `dnscrypt-proxy.toml`
+
+      >Note: DNS anonymization is only supported with the DNSCrypt and ODoH protocols
+
+      - **Troubleshooting Permissions** 
+        - Double check that DNScrypt proxy can read the provided .toml at `/dnscrypt-proxy/dnscrypt-proxy.toml` using `docker logs dnscrypt-proxy` and loook for any errors. If so, you may need to change its folder permissions, then restart the container
+      ```bash
+      sudo chown -R 65532:65532 ./dnscrypt-proxy/config
+      sudo chown -R 65532:65532 ./dnscrypt-proxy/log
+      #optional, give yourself permissions, which can be useful to edit the .toml
+      sudo groupadd -g 65532 dnscrypt
+      sudo usermod -aG dnscrypt $USER
+      sudo chown -R 65532:dnscrypt ./dnscrypt-proxy/config
+      sudo chown -R 65532:dnscrypt ./dnscrypt-proxy/log
+      sudo chmod -R g+rw ./dnscrypt-proxy/config
+      sudo chmod -R g+rw ./dnscrypt-proxy/log
+      ```
 
     - **Pi-hole**  
       - Acts as the DNS sinkhole and ad blocker.
       - Uses dnscrypt-proxy as its only upstream (`10.2.0.200#5350`).
       - Runs at `10.2.0.100` with environment variables for timezone, web UI password, and DNS config.
 
+      >Note: `10.2.0.200#5350` is duplicated as the upstream DNS, otherwise Pi-Hole will default to Google as a secondary.
+      
     - **wg-easy**  
       - Provides a simple web UI for managing WireGuard.
       - Uses Pi-hole for DNS (`10.2.0.100`) and routes through the subnet `10.2.0.0/24`.
@@ -158,44 +221,6 @@ Provided your DNS is properly configured on the device you're using, and you're 
 
 ---
 
-## Customizing DNSCrypt-Proxy
-
-The `dnscrypt-proxy` service uses `./dnscrypt-proxy/dnscrypt-proxy.toml`. It is pre-set out-of-the-box; however, to change servers, relays, filters, options, etc.:
-
-```bash
-# Edit the file in your editor, then:
-docker-compose restart dnscrypt-proxy
-docker-compose logs -f dnscrypt-proxy
-```
-
-> Note: you can change relays and routes from Canada to your preferred country. 
-- resolvers: https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/public-resolvers.md
-- relays: https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/relays.md
-
-The relevant parts of the .toml to change are:
-
-Resolvers:
-```toml
-server_names = [
-]
-```
-
-Relays:
-```toml
-routes = [
-]
-```
-
-Select relevant resolves, and relays that match your Country and/or other selected criteria. Use the existing .toml as an example for formatting.
-
->If you need to fix .toml permissions 
-```bash
-sudo chown -R 65532:65532 ./dnscrypt-proxy/config
-sudo chown -R 65532:65532 ./dnscrypt-proxy/log
-```
-
----
-
 ## Updating Info
 
 Below are the instructions for updating **containers**:
@@ -230,7 +255,7 @@ Key features of **DNSCrypt**:
 - **DNSSEC** – Validation handled by dnscrypt-proxy.
 
 Anonymized DNS is a lightweight privacy layer for DNS, similar in spirit to Tor or SOCKS—but purpose-built. It hides client IPs from DNS resolvers, ensuring confidentiality and integrity.  
-> Note: DNS anonymization only works with servers that support the DNSCrypt protocol. The .toml in this repo is preset with opinionated resolvers and relays selected for Canadian location privacy, speed, and logless that support DNSCrypt protocol.
+> Note: DNS anonymization only works with servers that support the DNSCrypt protocol. The .toml in this repo is preset with opinionated resolvers and relays selected for Canadian location privacy, speed, and logless that support DNSCrypt protocol. DoH is not compatible with anonimization.
 
 ### Does this work on a Raspberry Pi?
 I use this on a Raspberry Pi Zero 2w with Raspberry Pi OS Lite (64bit; Debian 12 Bookworm)
