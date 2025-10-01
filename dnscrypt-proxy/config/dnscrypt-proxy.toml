@@ -299,7 +299,7 @@ dnscrypt_ephemeral_keys = true
 ##
 ## Keep tls_cipher_suite undefined to let the app automatically choose secure parameters.
 
-tls_cipher_suite = [52392]
+tls_cipher_suite = [52392, 49199]
 
 
 ## Log TLS key material to a file, for debugging purposes only.
@@ -477,14 +477,12 @@ cache = true
 
 ## Cache size
 
-cache_size = 2048
-#default 4096
+cache_size = 4096
 
 
 ## Minimum TTL for cached entries
 
-cache_min_ttl = 1800 
-#default 2400
+cache_min_ttl = 2400 
 
 
 ## Maximum TTL for cached entries
@@ -499,8 +497,7 @@ cache_neg_min_ttl = 60
 
 ## Maximum TTL for negatively cached entries
 
-cache_neg_max_ttl = 300
-#default 600
+cache_neg_max_ttl = 600
 
 
 ###############################################################################
@@ -917,18 +914,40 @@ fragments_blocked = [
 # ]
 
 routes = [
-    { server_name = "dnscrypt.ca-ipv4",   via = ["dnscry.pt-anon-montreal-ipv4"] },
-    { server_name = "dnscry.pt-toronto-ipv4", via = ["dnscry.pt-anon-montreal-ipv4"] },
-    { server_name = "dnscry.pt-montreal-ipv4", via = ["dnscry.pt-anon-toronto-ipv4"] },
-    { server_name = "cs-montreal", via = ["dnscry.pt-anon-toronto-ipv4"] },
-    { server_name = "dnscry.pt-halifax-ipv4", via = ["dnscry.pt-anon-toronto-ipv4"] },
-    { server_name = "dnscry.pt-vancouver-ipv4", via = ["dnscry.pt-anon-toronto-ipv4"] },
-    { server_name = "cs-vancouver", via = ["dnscry.pt-anon-toronto-ipv4"] },
-    { server_name = "*", via = [
+    # ----------------------------------------
+    # Specific Toronto servers
+    # ----------------------------------------
+    { server_name = "dnscrypt.ca-ipv4", via = [
         "dnscry.pt-anon-toronto-ipv4",
-        "dnscry.pt-anon-montreal-ipv4",
-        "dnscry.pt-anon-halifax-ipv4",
-        "anon-cs-vancouver"
+        "dnscry.pt-anon-montreal-ipv4"
+    ] },
+    { server_name = "dnscry.pt-toronto-ipv4", via = [
+        "dnscrypt.ca-ipv4",
+        "anon-cs-montreal"
+    ] },
+
+    # ----------------------------------------
+    # Non-Toronto dnscry.pt servers (entity-separated)
+    # ----------------------------------------
+    { server_name = "dnscry.pt-montreal-ipv4", via = [
+        "anon-cs-montreal",
+        "dnscrypt.ca-ipv4"            
+    ] },
+    { server_name = "dnscry.pt-halifax-ipv4", via = [
+        "dnscrypt.ca-ipv4",              
+        "anon-cs-montreal"   
+    ] },
+    { server_name = "dnscry.pt-vancouver-ipv4", via = [
+        "anon-cs-vancouver",
+        "dnscrypt.ca-ipv4"
+    ] },
+
+    # ----------------------------------------
+    # Wildcard for everything else (only two Toronto relays)
+    # ----------------------------------------
+    { server_name = "*", via = [
+        "dnscrypt.ca-ipv4",
+        "dnscry.pt-anon-toronto-ipv4"
     ] }
 ]
 
