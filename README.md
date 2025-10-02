@@ -9,6 +9,7 @@ This all-in-one Docker Compose project lets you easily deploy a self-managed, fu
 - A modern web-based client manager via **WG-Easy** (updated to v15)
 - **Encrypted DNS** using **DNSCrypt-Proxy**, with **DNSSEC validation** and **anonymized queries** routed through Canadian relays for improved privacy.
 
+>**Note**: Uses strictly Canadian relays and servers, with routes selected so relays and servers are always run by different providers (i.e., entity separation), ensuring no single provider can link users to their queries.
 
 ---
 
