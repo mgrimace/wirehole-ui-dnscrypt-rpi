@@ -9,7 +9,8 @@ This all-in-one Docker Compose project lets you easily deploy a self-managed, fu
 - A modern web-based client manager via **WG-Easy** (updated to v15)
 - **Encrypted DNS** using **DNSCrypt-Proxy**, with **DNSSEC validation** and **anonymized queries** routed through Canadian relays for improved privacy.
 
->**Note**: Uses strictly Canadian relays and servers, with routes selected so relays and servers are always run by different providers (i.e., entity separation), ensuring no single provider can link users to their queries.
+>[!NOTE]
+> Uses strictly Canadian relays and servers, with routes selected so relays and servers are always run by different providers (i.e., entity separation), ensuring no single provider can link users to their queries.
 
 ---
 
@@ -185,11 +186,27 @@ docker compose up -d
       - Set Allowed IPs to `10.2.0.0/24` so only DNS/UI traffic goes via VPN; other traffic remains on client’s normal route.
       - Optionally, add an Allowed IP for your home network to access your self-hosted services on-the-go (e.g., `192.168.1.0/24`)
 
-    > Note: wg-easy v15 does not use environmental variables for the config the same as previous versions; however, all default values are still provided in the docker-compose.yaml for setup reference. Do not comment those values back into your compose or you'll receive an error, they are for reference only.
+> [!NOTE]
+> wg-easy v15 does not use environmental variables for the config the same as previous versions; however, all default values are still provided in the docker-compose.yaml for setup reference. Do not comment those values back into your compose or you'll receive an error, they are for reference only.
 
 <p align="center">
   <img src="./wirehole-ui.png" width="702" />
 </p>
+
+> [!WARNING]
+> WG-Easy15 has a bug with `IPTABLES` missing in the latest RPi and Ubuntu Kernel, see Issue [2614](https://github.com/wg-easy/wg-easy/issues/2614)
+
+## Troubleshoot: Fix WG-Easy Known Bug
+
+Admin Panel → Hooks tab, replace PostUp and PostDown with:
+PostUp:
+```
+    nft add table inet wg_table; nft add chain inet wg_table prerouting { type nat hook prerouting priority 100 \; }; nft add chain inet wg_table postrouting { type nat hook postrouting priority 100 \; }; nft add rule inet wg_table postrouting ip saddr {{ipv4Cidr}} oifname {{device}} masquerade; nft add rule inet wg_table postrouting ip6 saddr {{ipv6Cidr}} oifname {{device}} masquerade; nft add chain inet wg_table input { type filter hook input priority 0 \; policy accept \; }; nft add rule inet wg_table input udp dport {{port}} accept; nft add rule inet wg_table input tcp dport {{uiPort}} accept; nft add chain inet wg_table forward { type filter hook forward priority 0 \; policy accept \; }; nft add rule inet wg_table forward iifname "wg0" accept; nft add rule inet wg_table forward oifname "wg0" accept;
+```
+PostDown:
+```
+nft delete table inet wg_table;
+```
 
 7. **Setup your router**
     - Go to your router settings, note these steps depend entirely on your own router model
