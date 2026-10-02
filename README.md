@@ -240,6 +240,33 @@ Provided your DNS is properly configured on the device you're using, and you're 
 
 ---
 
+## Bypass Ad-Block Detection on websites
+
+1. **Add the detection domains to `pihole.toml`** under `[dns]` > `hosts`:
+```toml
+       hosts = [
+         "0.0.0.0 html-load.com",
+         "0.0.0.0 *.html-load.com",
+         "0.0.0.0 content-load.com",
+         "0.0.0.0 *.content-load.com",
+         "0.0.0.0 error-report.com",
+         "0.0.0.0 *.error-report.com"
+       ]
+```
+2. **Add these domains to the Pi-hole web UI** under **Group Management → Domains**, with **Add domain as wildcard** enabled:
+
+       html-load.com
+       content-load.com
+       error-report.com
+
+3. **Restart Pi-hole FTL:**
+```bash
+       sudo systemctl restart pihole-FTL
+```
+Source: https://medium.com/@dan_reid/how-to-beat-ad-blocker-detection-on-pi-hole-without-allowing-ads-f67d0111d434
+
+---
+
 ## Updating Info
 
 Below are the instructions for updating **containers**:
