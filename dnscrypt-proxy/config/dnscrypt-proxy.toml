@@ -27,17 +27,18 @@
 ##
 ## Remove the leading # first to enable this; lines starting with # are ignored.
 
-# server_names = ['scaleway-fr', 'google', 'yandex', 'cloudflare']
-
 server_names = [
     "cs-montreal",
     "cs-vancouver",
     "dnscrypt.ca-ipv4",
-    "dnscry.pt-halifax-ipv4",    
+    "dnscry.pt-halifax-ipv4",
     "dnscry.pt-montreal-ipv4",
     "dnscry.pt-toronto-ipv4",
+    "dnscry.pt-toronto02-ipv4",
+    "dnscry.pt-calgary-ipv4",
     "dnscry.pt-vancouver-ipv4",
 ]
+
 
 ## List of local addresses and ports to listen to. Can be IPv4 and/or IPv6.
 ## Example with both IPv4 and IPv6:
@@ -46,7 +47,7 @@ server_names = [
 ## To listen to all IPv4 addresses, use `listen_addresses = ['0.0.0.0:53']`
 ## To listen to all IPv4+IPv6 addresses, use `listen_addresses = ['[::]:53']`
 
-listen_addresses = ['0.0.0.0:5350']
+listen_addresses = ['0.0.0.1:5350']
 
 
 ## Maximum number of simultaneous client connections to accept
@@ -74,7 +75,7 @@ ipv4_servers = true
 # Use servers reachable over IPv6 -- Do not enable if you don't have IPv6 connectivity
 ipv6_servers = false
 
-# Use servers implementing the DNSCrypt protocol
+# Use servers implementing the DNSCrypt and PQDNSCrypt protocols
 dnscrypt_servers = true
 
 # Use servers implementing the DNS-over-HTTPS protocol
@@ -137,7 +138,7 @@ http3_probe = false
 ## Uncomment the following line to route all TCP connections to a local Tor node
 ## Tor doesn't support UDP, so set `force_tcp` to `true` as well. When passing
 ## a random username and password to Tor's socks5 connection, dnscrypt-proxy gets
-## an isolated circuit so it will not share an exit node with other applications.
+## an isolated circuit that will not share the same path with other applications.
 ## Note: the random username and password used by dnscrypt-proxy should not
 ## actually be defined in Tor's configuration.
 
@@ -284,16 +285,33 @@ cert_refresh_delay = 240
 # cert_ignore_timestamp = false
 
 
-## DNSCrypt: Create a new, unique key for every single DNS query
+## DNSCrypt: Create a new, unique X25519 key pair for every single DNS query
 ## This may improve privacy but can also have a significant impact on CPU usage
 ## Only enable if you don't have a lot of network load
 
 dnscrypt_ephemeral_keys = true
 
 
+## PQDNSCrypt (DNSCrypt 2026): use post-quantum cryptography when supported
+## by the server.
+## This protects the confidentiality of your queries against future quantum
+## computers ("harvest now, decrypt later").
+
+# pqdnscrypt = true
+
+
 ## DoH: Disable TLS session tickets - increases privacy but also latency
 
 # tls_disable_session_tickets = false
+
+
+## DoH: Check the certificate hashes of server stamps on every new connection,
+## not only at startup and when certificates are reloaded.
+##
+## This improves security, but also increases the risks of downtime if you
+## don't use DNSCrypt servers in addition to DoH servers.
+
+# doh_check_cert_hashes_on_connect = false
 
 
 ## Prefer RSA certificates over ECDSA for TLS connections.
@@ -347,7 +365,7 @@ dnscrypt_ephemeral_keys = true
 ## not be sent there. If you're using DNSCrypt or Anonymized DNS and your
 ## lists are up to date, these resolvers will not even be used.
 
-bootstrap_resolvers = ['9.9.9.11:53', '8.8.8.8:53']
+bootstrap_resolvers = ['149.112.121.10:53', '1.1.1.1:53']
 
 
 ## When internal DNS resolution is required, for example to retrieve
@@ -382,8 +400,11 @@ netprobe_timeout = 60
 ## when the system starts.
 ## On other operating systems, the connection will be initialized
 ## but nothing will be sent at all.
+## Multiple comma-separated addresses can be given, for example to support
+## both IPv4-only and IPv6-only networks. Connectivity is detected as soon
+## as any of them works: '8.8.8.8:53,[2001:4860:4860::8888]:53'
 
-netprobe_address = '9.9.9.9:53'
+netprobe_address = '1.1.1.1:53'
 
 
 ## Offline mode - Do not use any remote encrypted servers.
@@ -608,6 +629,11 @@ format = 'tsv'
 ##   ads.*
 ##   ads*.example.*
 ##   ads*.example[0-9]*.com
+##   regex: `^ads[0-9]+\.example\.com$`
+##
+## The last one is a regular expression, see `example-blocked-names.txt`.
+## If a regex rule is invalid or too slow, the proxy won't start, and a
+## reload keeps the old rules.
 ##
 ## Example blocklist files can be found at https://download.dnscrypt.info/blocklists/
 ## A script to build blocklists from public feeds can be found in the
@@ -665,6 +691,10 @@ format = 'tsv'
 ## If a name matches an allowlist entry, the corresponding session
 ## will bypass names and IP filters.
 ##
+## Regular expressions work here too, see `example-allowed-names.txt`.
+## If a regex rule is invalid or too slow, the proxy won't start, and a
+## reload keeps the old rules.
+##
 ## Time-based rules are also supported to make some websites only accessible at specific times of the day.
 
 [allowed_names]
@@ -691,8 +721,6 @@ format = 'tsv'
 ## Allowed IP lists support the same patterns as IP blocklists
 ## If an IP response matches an allowed entry, the corresponding session
 ## will bypass IP filters.
-##
-## Time-based rules are also supported to make some websites only accessible at specific times of the day.
 
 [allowed_ips]
 
@@ -764,7 +792,7 @@ format = 'tsv'
 ## expiring after `cache_ttl` hours.
 ##
 ## `refresh_delay` controls how often to download updates during normal operation.
-## Must be in the [24..168] interval (1 day to 1 week).
+## Must be in the [25..169] interval; values outside that range are clamped.
 ##
 ## `cache_ttl` controls how old the cache can be at startup before requiring
 ## an immediate download. Defaults to 168 hours if not set.
@@ -797,6 +825,15 @@ cache_file = 'relays.md'
 minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
 refresh_delay = 73
 prefix = ''
+
+### dnscry.pt resolvers and relays
+
+[sources.dnscry-pt-resolvers]
+  urls = ["https://www.dnscry.pt/resolvers.md"]
+  minisign_key = "RWQM31Nwkqh01x88SvrBL8djp1NH56Rb4mKLHz16K7qsXgEomnDv6ziQ"
+  cache_file = "dnscry.pt-resolvers.md"
+  refresh_delay = 73
+  prefix = "dnscry.pt-"
 
 ### ODoH (Oblivious DoH) servers and relays
 
@@ -929,47 +966,62 @@ fragments_blocked = [
 # ]
 
 routes = [
-
-    # ───────────────────────── Toronto ─────────────────────────
-    { server_name = "dnscrypt.ca-ipv4", via = [
+    { server_name = "cs-montreal", via = [
+        "dnscry.pt-anon-calgary-ipv4",
+        "dnscry.pt-anon-halifax-ipv4",
         "dnscry.pt-anon-toronto-ipv4",
-        "dnscry.pt-anon-montreal-ipv4"
-    ] },
-
-    { server_name = "dnscry.pt-toronto-ipv4", via = [
-        "dnscrypt.ca-ipv4",
-        "anon-cs-montreal"
-    ] },
-
-    # ───────────────────────── Montreal ────────────────────────
-    { server_name = "dnscry.pt-montreal-ipv4", via = [
-        "anon-cs-montreal",
+        "dnscry.pt-anon-toronto02-ipv4",
+        "dnscry.pt-anon-vancouver-ipv4",
         "dnscrypt.ca-ipv4"
     ] },
-
-    { server_name = "cs-montreal", via = [
-        "dnscrypt.ca-ipv4",
-        "dnscry.pt-anon-toronto-ipv4"
+    { server_name = "cs-vancouver", via = [
+        "dnscry.pt-anon-calgary-ipv4",
+        "dnscry.pt-anon-halifax-ipv4",
+        "dnscry.pt-anon-montreal-ipv4",
+        "dnscry.pt-anon-toronto-ipv4",
+        "dnscry.pt-anon-toronto02-ipv4",
+        "dnscrypt.ca-ipv4"
     ] },
-
-    # ───────────────────────── Halifax ──────────────────────────
-    { server_name = "dnscry.pt-halifax-ipv4", via = [
-        "dnscrypt.ca-ipv4",
-        "anon-cs-montreal"
+    { server_name = "dnscrypt.ca-ipv4", via = [
+        "anon-cs-montreal",
+        "anon-cs-vancouver",
+        "dnscry.pt-anon-calgary-ipv4",
+        "dnscry.pt-anon-halifax-ipv4",
+        "dnscry.pt-anon-montreal-ipv4",
+        "dnscry.pt-anon-toronto-ipv4",
+        "dnscry.pt-anon-toronto02-ipv4",
+        "dnscry.pt-anon-vancouver-ipv4"
     ] },
-
-    # ───────────────────────── Vancouver ────────────────────────
-    { server_name = "dnscry.pt-vancouver-ipv4", via = [
+    { server_name = "dnscry.pt-montreal-ipv4", via = [
         "anon-cs-vancouver",
         "dnscrypt.ca-ipv4"
     ] },
-
-    { server_name = "cs-vancouver", via = [
-        "dnscrypt.ca-ipv4",
-        "dnscry.pt-anon-toronto-ipv4"
+    { server_name = "dnscry.pt-toronto-ipv4", via = [
+        "anon-cs-montreal",
+        "anon-cs-vancouver",
+        "dnscrypt.ca-ipv4"
+    ] },
+    { server_name = "dnscry.pt-toronto02-ipv4", via = [
+        "anon-cs-montreal",
+        "anon-cs-vancouver",
+        "dnscrypt.ca-ipv4"
+    ] },
+    { server_name = "dnscry.pt-halifax-ipv4", via = [
+        "anon-cs-montreal",
+        "anon-cs-vancouver",
+        "dnscrypt.ca-ipv4"
+    ] },
+    { server_name = "dnscry.pt-calgary-ipv4", via = [
+        "anon-cs-montreal",
+        "anon-cs-vancouver",
+        "dnscrypt.ca-ipv4"
+    ] },
+    { server_name = "dnscry.pt-vancouver-ipv4", via = [
+        "anon-cs-montreal",
+        "dnscrypt.ca-ipv4"
     ] }
-
 ]
+
 
 ## Skip resolvers incompatible with anonymization instead of using them directly
 
@@ -980,7 +1032,7 @@ skip_incompatible = true
 ## retrieved via a relay, try getting them directly. Actual queries
 ## will then always go through relays.
 
-# direct_cert_fallback = false
+# direct_cert_fallback = true
 
 
 ###############################################################################
@@ -1078,8 +1130,8 @@ enable_query_log = true
 
 ## Privacy level for the monitoring UI
 ## 0: show all details including client IPs
-## 1: anonymize client IPs (default)
-## 2: aggregate data only (no individual queries or domains shown)
+## 1: anonymize client IPs
+## 2: aggregate data only (no individual queries or domains shown) (default)
 privacy_level = 1
 
 ## Maximum number of recent query log entries to keep in memory
